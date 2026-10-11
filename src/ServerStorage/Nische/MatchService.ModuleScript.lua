@@ -69,6 +69,7 @@ function MatchService.start(tableModel, players, onFinished)
 			end
 			round.closed = true
 			if #aliveList(s) < 2 then break end
+			s.played = (s.played or 0) + 1
 
 			-- Auflösung
 			for _, viewer in ipairs(aliveList(s)) do
@@ -94,6 +95,16 @@ function MatchService.start(tableModel, players, onFinished)
 
 		-- Ergebnis
 		local alive = aliveList(s)
+		-- Gegner ist vor der ersten abgeschlossenen Runde gegangen: kein Sieg, keine Belohnung
+		if not s.played and #alive < 2 then
+			for _, p in ipairs(alive) do
+				send(p, "Abort", {})
+				if Activity[p] and Activity[p].session == s then Activity[p] = nil end
+			end
+			s.finished = true
+			if onFinished then onFinished() end
+			return
+		end
 		local best = -1
 		for _, p in ipairs(alive) do best = math.max(best, s.totals[p]) end
 		local topCount = 0
